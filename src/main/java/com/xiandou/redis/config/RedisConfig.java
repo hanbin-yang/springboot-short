@@ -3,6 +3,7 @@ package com.xiandou.redis.config;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.xiandou.redis.core.DistributedLock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -29,5 +30,10 @@ public class RedisConfig {
     @Bean
     public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory factory) {
         return new StringRedisTemplate(factory);
+    }
+
+    @Bean
+    public DistributedLock distributedLock(StringRedisTemplate stringRedisTemplate) {
+        return new DistributedLock(stringRedisTemplate);
     }
 }
