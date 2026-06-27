@@ -23,3 +23,13 @@ spring:
         cluster:
           refresh:
             period: 2000s
+  datasource:
+    url: jdbc:h2:mem:seckill;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
