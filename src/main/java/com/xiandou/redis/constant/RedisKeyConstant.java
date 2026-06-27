@@ -3,7 +3,7 @@ package com.xiandou.redis.constant;
 public class RedisKeyConstant {
 
     public static final String PREFIX_LOCK = "{lock}:";
-    public static final String CHANNEL_LOCK_PREFIX = "redisson_lock__channel:{lock}:";
+    public static final String CHANNEL_LOCK_PREFIX = "redistemplate_lock__channel:{lock}:";
 
     public static final String PREFIX_SEMAPHORE = "{semaphore}:";
     public static final String CHANNEL_SEMAPHORE_PREFIX = "redisson_sc:{semaphore}:";
