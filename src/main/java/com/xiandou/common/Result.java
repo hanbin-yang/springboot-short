@@ -34,6 +34,10 @@ public class Result<T> implements Serializable {
         return new Result<>(data, code, msg);
     }
 
+    public static <T> Result<T> fail(String message) {
+        return new Result<>(null, "-1", message);
+    }
+
     public static <T> Result<T> error(String code, String msg) {
         return error(code, msg, null);
     }

@@ -8,6 +8,7 @@ E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\contro
 E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\controller\OrderController.java
 E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\controller\ProfileController.java
 E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\controller\SearchController.java
+E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\controller\SeckillController.java
 E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\controller\StoreController.java
 E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\mapper\SeckillActivityMapper.java
 E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\mapper\SeckillOrderMapper.java
@@ -30,6 +31,8 @@ E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\redis\
 E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\redis\core\DistributedSemaphore.java
 E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\redis\listener\PubSubSubscriber.java
 E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\service\MockDataService.java
+E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\service\SeckillDataInitializer.java
+E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\service\SeckillService.java
 E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\service\SeckillStockService.java
 E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\utils\lock\RedisLockResult.java
 E:\yhb\projects\aicodetest-web\springboot-short\src\main\java\com\xiandou\utils\lock\RedisLockUtil.java

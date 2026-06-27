@@ -30,7 +30,10 @@ com\xiandou\model\SeckillActivity.class
 com\xiandou\controller\OrderController.class
 com\xiandou\redis\core\DistributedReadWriteLock.class
 com\xiandou\service\SeckillStockService.class
+com\xiandou\controller\SeckillController.class
 com\xiandou\model\SeckillOrder.class
 com\xiandou\controller\AuthController.class
+com\xiandou\service\SeckillService.class
+com\xiandou\service\SeckillDataInitializer.class
 com\xiandou\controller\ProfileController.class
 com\xiandou\redis\constant\RedisKeyConstant.class

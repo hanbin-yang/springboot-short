@@ -112,6 +112,7 @@ public class MockDataService {
     public List<Category> getCategories() { return categories; }
     public List<Store> getStores() { return stores; }
     public List<String> getStoreCategories() { return storeCatList; }
+    public List<Product> getProducts(String storeId) { return storeProducts.getOrDefault(storeId, List.of()); }
 
     public List<Product> getStoreProducts(String storeId, String categoryId) {
         List<Product> all = storeProducts.getOrDefault(storeId, new ArrayList<>());

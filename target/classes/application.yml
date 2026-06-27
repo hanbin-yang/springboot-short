@@ -23,6 +23,9 @@ spring:
         cluster:
           refresh:
             period: 2000s
+  sql:
+    init:
+      mode: always
   datasource:
     url: jdbc:h2:mem:seckill;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
