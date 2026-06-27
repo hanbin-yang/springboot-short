@@ -1,0 +1,162 @@
+# ================================================================
+# Redis Cluster —— 3 个独立 Pod（1 Worker + 2 Master）
+# 默认 default 命名空间
+# ================================================================
+# 前置检查：kubectl get nodes -o wide
+# 将下方 nodeSelector 中的 hostname 替换为你的实际节点名
+# ================================================================
+
+---
+# Pod redis-0 —— Worker 节点 192.168.56.187 :6379
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis-0
+  labels:
+    app: redis-cluster
+spec:
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-node01"
+  containers:
+    - name: redis
+      image: docker.m.daocloud.io/library/redis:7.2-alpine
+      imagePullPolicy: IfNotPresent
+      args:
+        - --port
+        - "6379"
+        - --cluster-enabled
+        - "yes"
+        - --cluster-announce-ip
+        - "192.168.56.187"
+        - --cluster-announce-port
+        - "6379"
+        - --cluster-announce-bus-port
+        - "16379"
+        - --protected-mode
+        - "no"
+        - --bind
+        - "0.0.0.0"
+        - --save
+        - ""
+        - --appendonly
+        - "no"
+      ports:
+        - containerPort: 6379
+          name: client
+        - containerPort: 16379
+          name: cluster-bus
+      livenessProbe:
+        tcpSocket:
+          port: 6379
+        initialDelaySeconds: 5
+        periodSeconds: 10
+
+---
+# Pod redis-1 —— Master 节点 192.168.56.186 :6380
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis-1
+  labels:
+    app: redis-cluster
+spec:
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-master01"
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+      effect: NoSchedule
+  containers:
+    - name: redis
+      image: docker.m.daocloud.io/library/redis:7.2-alpine
+      imagePullPolicy: IfNotPresent
+      args:
+        - --port
+        - "6380"
+        - --cluster-enabled
+        - "yes"
+        - --cluster-announce-ip
+        - "192.168.56.186"
+        - --cluster-announce-port
+        - "6380"
+        - --cluster-announce-bus-port
+        - "16380"
+        - --protected-mode
+        - "no"
+        - --bind
+        - "0.0.0.0"
+        - --save
+        - ""
+        - --appendonly
+        - "no"
+      ports:
+        - containerPort: 6380
+          name: client
+        - containerPort: 16380
+          name: cluster-bus
+      livenessProbe:
+        tcpSocket:
+          port: 6380
+        initialDelaySeconds: 5
+        periodSeconds: 10
+
+---
+# Pod redis-2 —— Master 节点 192.168.56.186 :6381
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis-2
+  labels:
+    app: redis-cluster
+spec:
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-master01"
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+      effect: NoSchedule
+  containers:
+    - name: redis
+      image: docker.m.daocloud.io/library/redis:7.2-alpine
+      imagePullPolicy: IfNotPresent
+      args:
+        - --port
+        - "6381"
+        - --cluster-enabled
+        - "yes"
+        - --cluster-announce-ip
+        - "192.168.56.186"
+        - --cluster-announce-port
+        - "6381"
+        - --cluster-announce-bus-port
+        - "16381"
+        - --protected-mode
+        - "no"
+        - --bind
+        - "0.0.0.0"
+        - --save
+        - ""
+        - --appendonly
+        - "no"
+      ports:
+        - containerPort: 6381
+          name: client
+        - containerPort: 16381
+          name: cluster-bus
+      livenessProbe:
+        tcpSocket:
+          port: 6381
+        initialDelaySeconds: 5
+        periodSeconds: 10
