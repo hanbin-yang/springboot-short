@@ -315,17 +315,17 @@ class RedisUtilRealTest {
         AtomicBoolean tryLockGot = new AtomicBoolean(false);
         CountDownLatch ready = new CountDownLatch(1);
 
-        // 用 executeLock 先锁住
+        // 用 executeLock 先锁住（ready 在回调中触发，确保锁已持有）
         Thread holder = new Thread(() -> {
-            ready.countDown();
             RedisLockUtil.executeLock(key, 5, TimeUnit.SECONDS, (VoidSupplier) () -> {
+                ready.countDown();
                 try { TimeUnit.SECONDS.sleep(3); } catch (InterruptedException ignored) {}
             });
         });
         holder.start();
 
         ready.await();
-        TimeUnit.MILLISECONDS.sleep(200);
+        // 此时锁一定被持有（executeLock 内部已获取锁才执行回调）
 
         // executeTryLock 应失败
         RedisLockResult<String> r = RedisLockUtil.executeTryLock(key, 1, () -> "try");
