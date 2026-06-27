@@ -1,4 +1,4 @@
-package com.xiandou.utils;
+package com.xiandou.utils.lock;
 
 import com.xiandou.redis.core.DistributedLock;
 import org.slf4j.Logger;

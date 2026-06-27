@@ -1,4 +1,4 @@
-package com.xiandou.utils;
+package com.xiandou.utils.lock;
 
 /**
  * @author YangHanBin

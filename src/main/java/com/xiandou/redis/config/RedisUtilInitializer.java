@@ -1,7 +1,7 @@
 package com.xiandou.redis.config;
 
 import com.xiandou.redis.core.DistributedLock;
-import com.xiandou.utils.RedisLockUtil;
+import com.xiandou.utils.lock.RedisLockUtil;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
