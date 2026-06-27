@@ -70,16 +70,20 @@ public class RedisLockUtil {
 
     // ==================== executeLock 系列 ====================
 
-    public static <V> V executeLock(String keyName, long expireTime, TimeUnit timeUnit, Supplier<V> supplier) {
-        return doExecuteLock(keyName, expireTime, timeUnit, supplier);
+    public static <V> V executeLock(String keyName, long leaseSeconds, Supplier<V> supplier) {
+        return doExecuteLock(keyName, leaseSeconds, TimeUnit.SECONDS, supplier);
     }
 
-    public static void executeLock(String keyName, long expireTime, TimeUnit timeUnit, VoidSupplier supplier) {
-        doExecuteLock(keyName, expireTime, timeUnit, supplier);
+    public static <V> V executeLock(String keyName, long leaseTime, TimeUnit timeUnit, Supplier<V> supplier) {
+        return doExecuteLock(keyName, leaseTime, timeUnit, supplier);
     }
 
-    private static <V> V doExecuteLock(String keyName, long expireTime, TimeUnit timeUnit, Object supplier) {
-        long leaseMs = timeUnit.toMillis(expireTime);
+    public static void executeLock(String keyName, long leaseTime, TimeUnit timeUnit, VoidSupplier supplier) {
+        doExecuteLock(keyName, leaseTime, timeUnit, supplier);
+    }
+
+    private static <V> V doExecuteLock(String keyName, long leaseTime, TimeUnit timeUnit, Object supplier) {
+        long leaseMs = timeUnit.toMillis(leaseTime);
         distributedLock.lock(keyName, leaseMs, TimeUnit.MILLISECONDS);
 
         try {
