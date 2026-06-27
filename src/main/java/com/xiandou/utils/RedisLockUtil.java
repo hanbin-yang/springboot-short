@@ -11,8 +11,8 @@ import java.util.function.Supplier;
  * Redis 工具类——纯外观层，委托给 DistributedLock。
  * 保持与原始 API 完全兼容。
  */
-public class RedisUtil {
-    private static final Logger logger = LoggerFactory.getLogger(RedisUtil.class);
+public class RedisLockUtil {
+    private static final Logger logger = LoggerFactory.getLogger(RedisLockUtil.class);
     private static DistributedLock distributedLock;
 
     public static void init(DistributedLock lock) {

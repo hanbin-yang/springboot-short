@@ -1,7 +1,7 @@
 package com.xiandou.redis.config;
 
 import com.xiandou.redis.core.DistributedLock;
-import com.xiandou.utils.RedisUtil;
+import com.xiandou.utils.RedisLockUtil;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +24,7 @@ public class RedisUtilInitializer {
 
     @PostConstruct
     public void init() {
-        RedisUtil.init(distributedLock);
+        RedisLockUtil.init(distributedLock);
         logger.info("RedisUtilInitializer: RedisUtil 已初始化");
     }
 }

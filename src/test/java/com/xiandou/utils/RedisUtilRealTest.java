@@ -36,7 +36,7 @@ class RedisUtilRealTest {
     @BeforeEach
     void setUp() {
         DistributedLock lock = new DistributedLock(redisTemplate);
-        RedisUtil.init(lock);
+        RedisLockUtil.init(lock);
         lockPrefix.set("test:real:util:" + System.nanoTime() + ":");
     }
 
@@ -52,7 +52,7 @@ class RedisUtilRealTest {
     @DisplayName("executeTryLock-加锁成功并返回结果")
     void executeTryLockSuccess() {
         String key = lk("success");
-        RedisLockResult<String> r = RedisUtil.executeTryLock(key, 5, () -> "ok");
+        RedisLockResult<String> r = RedisLockUtil.executeTryLock(key, 5, () -> "ok");
         assertFalse(r.isFailure());
         assertEquals("ok", r.getObj());
     }
@@ -64,7 +64,7 @@ class RedisUtilRealTest {
         DistributedLock lock = new DistributedLock(redisTemplate);
         assertTrue(lock.tryLock(key, 10, TimeUnit.SECONDS));
 
-        RedisLockResult<String> r = RedisUtil.executeTryLock(key, 0, () -> "should not run");
+        RedisLockResult<String> r = RedisLockUtil.executeTryLock(key, 0, () -> "should not run");
         assertTrue(r.isFailure());
         assertNull(r.getObj());
         lock.unlock(key);
@@ -75,7 +75,7 @@ class RedisUtilRealTest {
     void executeTryLockVoid() {
         String key = lk("void");
         AtomicBoolean ran = new AtomicBoolean(false);
-        RedisLockResult<Void> r = RedisUtil.executeTryLock(key, 5, () -> ran.set(true));
+        RedisLockResult<Void> r = RedisLockUtil.executeTryLock(key, 5, () -> ran.set(true));
         assertFalse(r.isFailure());
         assertTrue(ran.get());
     }
@@ -84,7 +84,7 @@ class RedisUtilRealTest {
     @DisplayName("executeTryLock-带expireSeconds参数")
     void executeTryLockWithExpire() {
         String key = lk("expire");
-        String result = RedisUtil.executeTryLock(key, 5, 3, (Supplier<String>) () -> "exp").getObj();
+        String result = RedisLockUtil.executeTryLock(key, 5, 3, (Supplier<String>) () -> "exp").getObj();
         assertEquals("exp", result);
     }
 
@@ -93,7 +93,7 @@ class RedisUtilRealTest {
     void executeTryLockWithExpireVoid() {
         String key = lk("expVoid");
         AtomicBoolean ran = new AtomicBoolean(false);
-        RedisUtil.executeTryLock(key, 5, 3, () -> ran.set(true));
+        RedisLockUtil.executeTryLock(key, 5, 3, () -> ran.set(true));
         assertTrue(ran.get());
     }
 
@@ -101,7 +101,7 @@ class RedisUtilRealTest {
     @DisplayName("executeTryLock-全参数TimeUnit版本+Supplier")
     void executeTryLockFullParamSupplier() {
         String key = lk("fullSup");
-        String r = RedisUtil.executeTryLock(key, 3, 30, TimeUnit.SECONDS,
+        String r = RedisLockUtil.executeTryLock(key, 3, 30, TimeUnit.SECONDS,
                 (Supplier<String>) () -> "full").getObj();
         assertEquals("full", r);
     }
@@ -111,7 +111,7 @@ class RedisUtilRealTest {
     void executeTryLockFullParamVoid() {
         String key = lk("fullVoid");
         AtomicBoolean ran = new AtomicBoolean(false);
-        RedisUtil.executeTryLock(key, 3, 30, TimeUnit.SECONDS, () -> ran.set(true));
+        RedisLockUtil.executeTryLock(key, 3, 30, TimeUnit.SECONDS, () -> ran.set(true));
         assertTrue(ran.get());
     }
 
@@ -126,7 +126,7 @@ class RedisUtilRealTest {
         String lockKey = RedisKeyConstant.lockKey(key);
 
         assertThrows(RuntimeException.class, () ->
-            RedisUtil.executeTryLock(key, 5,
+            RedisLockUtil.executeTryLock(key, 5,
                 (Supplier<String>) () -> { throw new RuntimeException("oops"); })
         );
         assertFalse(Boolean.TRUE.equals(redisTemplate.hasKey(lockKey)), "异常后锁 Key 应删除");
@@ -139,7 +139,7 @@ class RedisUtilRealTest {
         String lockKey = RedisKeyConstant.lockKey(key);
 
         assertThrows(RuntimeException.class, () ->
-            RedisUtil.executeTryLock(key, 5,
+            RedisLockUtil.executeTryLock(key, 5,
                 (Supplier<String>) () -> { throw new RuntimeException("oops"); })
         );
 
@@ -154,7 +154,7 @@ class RedisUtilRealTest {
     void executeTryLockVoidExceptionUnlocks() {
         String key = lk("exVoid");
         assertThrows(RuntimeException.class, () ->
-            RedisUtil.executeTryLock(key, 5, (VoidSupplier) () -> { throw new RuntimeException("void oops"); })
+            RedisLockUtil.executeTryLock(key, 5, (VoidSupplier) () -> { throw new RuntimeException("void oops"); })
         );
         assertFalse(redisTemplate.hasKey(RedisKeyConstant.lockKey(key)));
     }
@@ -167,7 +167,7 @@ class RedisUtilRealTest {
     @DisplayName("executeLock-阻塞获取并返回结果")
     void executeLockBlocking() {
         String key = lk("blocking");
-        String result = RedisUtil.executeLock(key, 30, TimeUnit.SECONDS,
+        String result = RedisLockUtil.executeLock(key, 30, TimeUnit.SECONDS,
                 (Supplier<String>) () -> "blocking ok");
         assertEquals("blocking ok", result);
     }
@@ -177,7 +177,7 @@ class RedisUtilRealTest {
     void executeLockVoid() {
         String key = lk("blockVoid");
         AtomicBoolean ran = new AtomicBoolean(false);
-        RedisUtil.executeLock(key, 30, TimeUnit.SECONDS, (VoidSupplier) () -> ran.set(true));
+        RedisLockUtil.executeLock(key, 30, TimeUnit.SECONDS, (VoidSupplier) () -> ran.set(true));
         assertTrue(ran.get());
     }
 
@@ -193,7 +193,7 @@ class RedisUtilRealTest {
 
         Thread t = new Thread(() -> {
             ready.countDown();
-            String r = RedisUtil.executeLock(key, 5, TimeUnit.SECONDS,
+            String r = RedisLockUtil.executeLock(key, 5, TimeUnit.SECONDS,
                     (Supplier<String>) () -> "obtained");
             if ("obtained".equals(r)) got.set(true);
         });
@@ -219,7 +219,7 @@ class RedisUtilRealTest {
 
         Thread t = new Thread(() -> {
             ready.countDown();
-            RedisUtil.executeLock(key, 5, TimeUnit.SECONDS,
+            RedisLockUtil.executeLock(key, 5, TimeUnit.SECONDS,
                     (VoidSupplier) () -> ran.set(true));
         });
         t.start();
@@ -239,7 +239,7 @@ class RedisUtilRealTest {
         String lockKey = RedisKeyConstant.lockKey(key);
 
         assertThrows(RuntimeException.class, () ->
-            RedisUtil.executeLock(key, 30, TimeUnit.SECONDS,
+            RedisLockUtil.executeLock(key, 30, TimeUnit.SECONDS,
                 (Supplier<String>) () -> { throw new RuntimeException("ex"); })
         );
         assertFalse(Boolean.TRUE.equals(redisTemplate.hasKey(lockKey)), "异常后锁 Key 应删除");
@@ -253,10 +253,10 @@ class RedisUtilRealTest {
     @DisplayName("重入-executeTryLock嵌套调用（同一线程）")
     void reentrantExecuteTryLock() {
         String key = lk("reentrant");
-        RedisLockResult<String> outer = RedisUtil.executeTryLock(key, 5,
+        RedisLockResult<String> outer = RedisLockUtil.executeTryLock(key, 5,
                 () -> {
                     // 内部再次获取同一把锁（重入）
-                    RedisLockResult<String> inner = RedisUtil.executeTryLock(key, 0,
+                    RedisLockResult<String> inner = RedisLockUtil.executeTryLock(key, 0,
                             () -> "inner");
                     return inner.isFailure() ? "inner_failed" : "outer:" + inner.getObj();
                 });
@@ -268,9 +268,9 @@ class RedisUtilRealTest {
     @DisplayName("重入-executeLock嵌套调用（同一线程）")
     void reentrantExecuteLock() {
         String key = lk("reentrantLock");
-        String result = RedisUtil.executeLock(key, 30, TimeUnit.SECONDS,
+        String result = RedisLockUtil.executeLock(key, 30, TimeUnit.SECONDS,
                 (Supplier<String>) () ->
-                    RedisUtil.executeLock(key, 30, TimeUnit.SECONDS,
+                    RedisLockUtil.executeLock(key, 30, TimeUnit.SECONDS,
                         (Supplier<String>) () -> "nested"));
         assertEquals("nested", result);
     }
@@ -288,7 +288,7 @@ class RedisUtilRealTest {
             new Thread(() -> {
                 try {
                     start.await();
-                    RedisLockResult<String> r = RedisUtil.executeTryLock(key, 5,
+                    RedisLockResult<String> r = RedisLockUtil.executeTryLock(key, 5,
                             () -> {
                                 try { TimeUnit.MILLISECONDS.sleep(100); } catch (InterruptedException ignored) {}
                                 return "done";
@@ -315,7 +315,7 @@ class RedisUtilRealTest {
         // 用 executeLock 先锁住
         Thread holder = new Thread(() -> {
             ready.countDown();
-            RedisUtil.executeLock(key, 5, TimeUnit.SECONDS, (VoidSupplier) () -> {
+            RedisLockUtil.executeLock(key, 5, TimeUnit.SECONDS, (VoidSupplier) () -> {
                 try { TimeUnit.SECONDS.sleep(3); } catch (InterruptedException ignored) {}
             });
         });
@@ -325,7 +325,7 @@ class RedisUtilRealTest {
         TimeUnit.MILLISECONDS.sleep(200);
 
         // executeTryLock 应失败
-        RedisLockResult<String> r = RedisUtil.executeTryLock(key, 1, () -> "try");
+        RedisLockResult<String> r = RedisLockUtil.executeTryLock(key, 1, () -> "try");
         assertTrue(r.isFailure(), "锁被占时 executeTryLock 应返回失败");
 
         holder.join();
@@ -342,7 +342,7 @@ class RedisUtilRealTest {
         DistributedLock lock = new DistributedLock(redisTemplate);
         assertTrue(lock.tryLock(key, 10, TimeUnit.SECONDS));
 
-        RedisLockResult<String> r = RedisUtil.executeTryLock(key, 0, () -> "x");
+        RedisLockResult<String> r = RedisLockUtil.executeTryLock(key, 0, () -> "x");
         assertTrue(r.isFailure());
         lock.unlock(key);
     }
@@ -352,7 +352,7 @@ class RedisUtilRealTest {
     void executeTryLockWaitNegative() {
         String key = lk("waitNeg");
         // waitTime 视为 0，锁空闲则立即获取
-        RedisLockResult<String> r = RedisUtil.executeTryLock(key, -1, () -> "negOk");
+        RedisLockResult<String> r = RedisLockUtil.executeTryLock(key, -1, () -> "negOk");
         assertFalse(r.isFailure());
         assertEquals("negOk", r.getObj());
     }
@@ -364,7 +364,7 @@ class RedisUtilRealTest {
         String lockKey = RedisKeyConstant.lockKey(key);
 
         // expireTime=3s，不启动 Watchdog
-        RedisUtil.executeLock(key, 3, TimeUnit.SECONDS, (VoidSupplier) () -> {
+        RedisLockUtil.executeLock(key, 3, TimeUnit.SECONDS, (VoidSupplier) () -> {
             // 锁存在
             assertNotNull(redisTemplate.hasKey(lockKey));
         });
@@ -380,18 +380,18 @@ class RedisUtilRealTest {
         String prefix = lk("ov");
 
         // 1. waitSeconds + Supplier
-        assertNotNull(RedisUtil.executeTryLock(prefix + "a", 3, () -> "s1").getObj());
+        assertNotNull(RedisLockUtil.executeTryLock(prefix + "a", 3, () -> "s1").getObj());
         // 2. waitSeconds + VoidSupplier
-        assertFalse(RedisUtil.executeTryLock(prefix + "b", 3, () -> {}).isFailure());
+        assertFalse(RedisLockUtil.executeTryLock(prefix + "b", 3, () -> {}).isFailure());
         // 3. waitSeconds + expireSeconds + Supplier
-        assertNotNull(RedisUtil.executeTryLock(prefix + "c", 3, 5, (Supplier<String>) () -> "s3").getObj());
+        assertNotNull(RedisLockUtil.executeTryLock(prefix + "c", 3, 5, (Supplier<String>) () -> "s3").getObj());
         // 4. waitSeconds + expireSeconds + VoidSupplier
-        assertFalse(RedisUtil.executeTryLock(prefix + "d", 3, 5, () -> {}).isFailure());
+        assertFalse(RedisLockUtil.executeTryLock(prefix + "d", 3, 5, () -> {}).isFailure());
         // 5. waitTime + expireTime + TimeUnit + Supplier
-        assertNotNull(RedisUtil.executeTryLock(prefix + "e", 3, 30, TimeUnit.SECONDS,
+        assertNotNull(RedisLockUtil.executeTryLock(prefix + "e", 3, 30, TimeUnit.SECONDS,
                 (Supplier<String>) () -> "s5").getObj());
         // 6. waitTime + expireTime + TimeUnit + VoidSupplier
-        assertFalse(RedisUtil.executeTryLock(prefix + "f", 3, 30, TimeUnit.SECONDS,
+        assertFalse(RedisLockUtil.executeTryLock(prefix + "f", 3, 30, TimeUnit.SECONDS,
                 () -> {}).isFailure());
     }
 }

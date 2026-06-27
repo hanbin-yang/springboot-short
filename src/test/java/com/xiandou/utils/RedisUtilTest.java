@@ -37,7 +37,7 @@ class RedisUtilTest {
 
     @BeforeEach
     void setUp() {
-        RedisUtil.init(distributedLock);
+        RedisLockUtil.init(distributedLock);
     }
 
     // ==================== executeTryLock 测试 ====================
@@ -47,7 +47,7 @@ class RedisUtilTest {
     void executeTryLock_success_returnsResult() {
         doReturn(true).when(distributedLock).tryLock(anyString(), anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS));
 
-        RedisLockResult<String> result = RedisUtil.executeTryLock(TEST_KEY, 5, () -> TEST_RESULT);
+        RedisLockResult<String> result = RedisLockUtil.executeTryLock(TEST_KEY, 5, () -> TEST_RESULT);
 
         assertThat(result.isFailure()).isFalse();
         assertThat(result.getObj()).isEqualTo(TEST_RESULT);
@@ -60,7 +60,7 @@ class RedisUtilTest {
         doReturn(false).when(distributedLock).tryLock(anyString(), anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS));
 
         AtomicBoolean executed = new AtomicBoolean(false);
-        RedisLockResult<String> result = RedisUtil.executeTryLock(TEST_KEY, 5, () -> {
+        RedisLockResult<String> result = RedisLockUtil.executeTryLock(TEST_KEY, 5, () -> {
             executed.set(true);
             return TEST_RESULT;
         });
@@ -78,7 +78,7 @@ class RedisUtilTest {
         RuntimeException expectedEx = new RuntimeException("业务异常");
 
         assertThatThrownBy(() ->
-                RedisUtil.executeTryLock(TEST_KEY, 5, () -> {
+                RedisLockUtil.executeTryLock(TEST_KEY, 5, () -> {
                     throw expectedEx;
                 })
         ).isSameAs(expectedEx);
@@ -91,7 +91,7 @@ class RedisUtilTest {
     void executeTryLock_zeroWaitTime() {
         doReturn(true).when(distributedLock).tryLock(anyString(), eq(0L), anyLong(), eq(TimeUnit.MILLISECONDS));
 
-        RedisLockResult<String> result = RedisUtil.executeTryLock(TEST_KEY, 0, () -> TEST_RESULT);
+        RedisLockResult<String> result = RedisLockUtil.executeTryLock(TEST_KEY, 0, () -> TEST_RESULT);
 
         assertThat(result.isFailure()).isFalse();
         assertThat(result.getObj()).isEqualTo(TEST_RESULT);
@@ -104,7 +104,7 @@ class RedisUtilTest {
     @Test
     @DisplayName("executeLock 正常执行并返回值")
     void executeLock_normal_returnsResult() {
-        String result = RedisUtil.executeLock(TEST_KEY, 10, TimeUnit.SECONDS, () -> TEST_RESULT);
+        String result = RedisLockUtil.executeLock(TEST_KEY, 10, TimeUnit.SECONDS, () -> TEST_RESULT);
 
         assertThat(result).isEqualTo(TEST_RESULT);
         verify(distributedLock).lock(TEST_KEY, TimeUnit.SECONDS.toMillis(10), TimeUnit.MILLISECONDS);
@@ -116,7 +116,7 @@ class RedisUtilTest {
     void executeLock_voidSupplier_normal() {
         AtomicBoolean executed = new AtomicBoolean(false);
 
-        RedisUtil.executeLock(TEST_KEY, 10, TimeUnit.SECONDS, () -> executed.set(true));
+        RedisLockUtil.executeLock(TEST_KEY, 10, TimeUnit.SECONDS, () -> executed.set(true));
 
         assertThat(executed.get()).isTrue();
         verify(distributedLock).lock(TEST_KEY, TimeUnit.SECONDS.toMillis(10), TimeUnit.MILLISECONDS);
@@ -131,22 +131,22 @@ class RedisUtilTest {
         doReturn(true).when(distributedLock).tryLock(anyString(), anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS));
 
         // 2-参数：keyName, waitSeconds, Supplier
-        RedisUtil.executeTryLock(TEST_KEY, 3, (Supplier<String>) () -> TEST_RESULT);
+        RedisLockUtil.executeTryLock(TEST_KEY, 3, (Supplier<String>) () -> TEST_RESULT);
 
         // 2-参数：keyName, waitSeconds, VoidSupplier
-        RedisUtil.executeTryLock(TEST_KEY, 3, (VoidSupplier) () -> {});
+        RedisLockUtil.executeTryLock(TEST_KEY, 3, (VoidSupplier) () -> {});
 
         // 3-参数：keyName, waitSeconds, expireSeconds, Supplier
-        RedisUtil.executeTryLock(TEST_KEY, 3, 60, (Supplier<String>) () -> TEST_RESULT);
+        RedisLockUtil.executeTryLock(TEST_KEY, 3, 60, (Supplier<String>) () -> TEST_RESULT);
 
         // 3-参数：keyName, waitSeconds, expireSeconds, VoidSupplier
-        RedisUtil.executeTryLock(TEST_KEY, 3, 60, (VoidSupplier) () -> {});
+        RedisLockUtil.executeTryLock(TEST_KEY, 3, 60, (VoidSupplier) () -> {});
 
         // 4-参数：keyName, waitTime, expireTime, TimeUnit, Supplier
-        RedisUtil.executeTryLock(TEST_KEY, 3, 60, TimeUnit.SECONDS, (Supplier<String>) () -> TEST_RESULT);
+        RedisLockUtil.executeTryLock(TEST_KEY, 3, 60, TimeUnit.SECONDS, (Supplier<String>) () -> TEST_RESULT);
 
         // 4-参数：keyName, waitTime, expireTime, TimeUnit, VoidSupplier
-        RedisUtil.executeTryLock(TEST_KEY, 3, 60, TimeUnit.SECONDS, (VoidSupplier) () -> {});
+        RedisLockUtil.executeTryLock(TEST_KEY, 3, 60, TimeUnit.SECONDS, (VoidSupplier) () -> {});
 
         // 验证 tryLock 被调用了 6 次（每个重载各 1 次）
         verify(distributedLock, times(6)).tryLock(anyString(), anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS));
