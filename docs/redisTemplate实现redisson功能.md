@@ -25,28 +25,33 @@
 项目中基于 `StringRedisTemplate` + Lua 脚本仿写了 Redisson 的分布式锁功能：
 
 ```
-com.xiandou.redis/
-├── config/
-│   ├── RedisConfig.java        → 注册 RedisTemplate、DistributedLock Bean
-│   └── LuaScriptRegistry.java  → 7 个 Lua 脚本常量
-├── constant/
-│   └── RedisKeyConstant.java   → Key/Channel 前缀（含 {tag} 哈希标签）
-├── core/
-│   ├── DistributedLock.java         → 可重入锁 + Watchdog
-│   ├── DistributedSemaphore.java    → 信号量
-│   ├── DistributedCountDownLatch.java → 倒计数门闩
-│   └── DistributedReadWriteLock.java  → 读写锁 + 锁降级
-├── listener/
-│   └── PubSubSubscriber.java  → Pub/Sub 订阅助手
+com.xiandou/
+├── redis/
+│   ├── config/
+│   │   ├── RedisConfig.java            → 注册 RedisTemplate、DistributedLock Bean
+│   │   ├── RedisUtilInitializer.java   → @PostConstruct 桥接 RedisLockUtil 注入
+│   │   └── LuaScriptRegistry.java      → 7 个 Lua 脚本常量
+│   ├── constant/
+│   │   └── RedisKeyConstant.java       → Key/Channel 前缀（含 {tag} 哈希标签）
+│   ├── core/
+│   │   ├── DistributedLock.java              → 可重入锁 + Watchdog
+│   │   ├── DistributedSemaphore.java         → 信号量
+│   │   ├── DistributedCountDownLatch.java    → 倒计数门闩
+│   │   └── DistributedReadWriteLock.java     → 读写锁 + 锁降级
+│   └── listener/
+│       └── PubSubSubscriber.java     → Pub/Sub 订阅助手
 └── utils/
-    └── RedisUtil.java          → 外观层（executeTryLock / executeLock）
+    └── lock/
+        ├── RedisLockUtil.java        → 外观层（executeTryLock / executeLock）
+        ├── RedisLockResult.java      → 锁操作结果封装
+        └── VoidSupplier.java         → 无返回值函数式接口
 ```
 
 所有分布式原语是**纯 Spring Data Redis + Lua 脚本**自行实现，不依赖 Redisson。
 
 ### 1.2 原有测试
 
-已有 Mock 测试覆盖内部逻辑、异常路径、时间敏感场景，但**从未在真实的 Redis Cluster 上跑过**。
+已有 Mock 测试覆盖内部逻辑、异常路径、时间敏感场景。 使用虚拟机构建k8s部署了一套简单的3节点的redis集群模式，配合测试用例，已充分测试
 
 目标：编写**真实集群测试**，验证仿写 Redisson 的功能在集群环境下是否正常工作，并修复发现的问题。
 
@@ -276,6 +281,52 @@ assertNotNull(redisTemplate.hasKey(key)));                      ← 被误伤
 
 **教训**：批量替换带嵌套括号的表达式，慎用 sed。安全的做法是逐文件手改或用 IDE 的 refactor 工具。
 
+### 3.3 `concurrencyLockAndTryLock()` 竞态条件 — 偶发失败
+
+#### 发现过程
+
+`RedisUtilRealTest.concurrencyLockAndTryLock()` 偶尔失败，`assertTrue(r.isFailure())` 期望锁被占，但 `executeTryLock` 成功返回了。
+
+#### 根因
+
+测试代码用 `CountDownLatch` 协调线程时序，但信号发早了：
+
+```java
+// 问题代码：ready.countDown() 在获取锁之前
+Thread holder = new Thread(() -> {
+    ready.countDown();                              // ← 锁还没拿到就发信号
+    RedisLockUtil.executeLock(key, 5, SECONDS, () -> {
+        TimeUnit.SECONDS.sleep(3);                   // 持锁 3 秒
+    });
+});
+holder.start();
+
+ready.await();                                      // ← 主线程收到信号，以为锁已持有
+RedisLockResult<String> r = RedisLockUtil.executeTryLock(key, 1, () -> "try");
+assertTrue(r.isFailure());                          // 但锁可能还没拿到，tryLock 成功 → ❌
+```
+
+`executeLock` 是**阻塞方法**，内部通过 `lock()` 等待获取锁。在执行回调之前，锁还不一定被持有。而 `ready.countDown()` 放在 `executeLock` 调用之前，信号比锁的状态提前了。
+
+#### 修复
+
+将 `ready.countDown()` 移到 `executeLock` 的回调内部，确保信号在锁已获取后才发出：
+
+```java
+Thread holder = new Thread(() -> {
+    RedisLockUtil.executeLock(key, 5, SECONDS, (VoidSupplier) () -> {
+        ready.countDown();                          // ← 锁已获取才发信号
+        TimeUnit.SECONDS.sleep(3);
+    });
+});
+```
+
+`executeLock` 的回调只在锁获取成功后执行，所以 `countDown` 在这里触发保证「信号 = 锁已持有」。
+
+#### 教训
+
+用 `CountDownLatch` 做线程协调时，一定要确认信号点是否在**关键操作完成之后**。对于锁测试来说，"锁已持有"的判定点应该是回调内部、而非 `lock()` 调用之前。
+
 ---
 
 ## 4. TTL 过期策略改造
@@ -458,7 +509,7 @@ release("s", 3)          → INCRBY 创建 Key=3 ✅ 释放许可，语义正确
 | `DistributedCountDownLatchRealTest.java` | 30 | 初始化(存在/重复/负数/零)、计数查询、递减(归零/超零/幂等)、await(阻塞/超时/归零/提前返回)、多线程Pub/Sub通知(5个全唤醒)、逐步递减3阶段、中断处理、**TTL过期(countDown不创建-1/await立即返回/续期)** |
 | `DistributedReadWriteLockRealTest.java` | 29 | 写/读锁基础、写写互斥、读读共享(多实例)、可重入(3级)、非法解锁、读写互斥(双向)、等待获取(写释放后读/多读+写等待)、锁降级(单次/多次/阻塞其他写)、超时等待、数据结构验证、TTL过期 |
 | `PubSubSubscriberRealTest.java` | 17 | 订阅接收消息、await超时、先发布后订阅不接收、多订阅者(5个全收)、独立频道隔离、close清理/幂等/关闭后不接收、try-with-resources、模拟lock通知流程、模拟latch通知流程、中断处理、**哈希标签频道** |
-| `RedisUtilRealTest.java` | 23 | executeTryLock 6个重载全部验证、Supplier/VoidSupplier变体、锁占失败、异常解锁(exception→unlock→其他线程可重入)、executeLock阻塞(Supplier/VoidSupplier)、嵌套重入、并发竞争、executeLock+executeTryLock互斥、边界(wait=0/负数)、不启动Watchdog |
+| `utils/RedisUtilRealTest.java` | 23 | `RedisLockUtil` 外观层测试：executeTryLock 6个重载全部验证、Supplier/VoidSupplier变体、锁占失败、异常解锁(exception→unlock→其他线程可重入)、executeLock阻塞(Supplier/VoidSupplier)、嵌套重入、并发竞争、executeLock+executeTryLock互斥、边界(wait=0/负数)、不启动Watchdog |
 | **合计** | **165** | |
 
 ### 5.2 发现的问题清单
@@ -472,6 +523,7 @@ release("s", 3)          → INCRBY 创建 Key=3 ✅ 释放许可，语义正确
 | 5 | Latch DECR 创建 -1 | 生产代码 Bug | 过期 Key 上 DECR 产生 -1 误判归零 | `LuaScriptRegistry.java LATCH_COUNTDOWN_SCRIPT` |
 | 6 | Latch 过期不 publish | 生产代码 Bug | exists 保护后忘了通知等待线程 | `LuaScriptRegistry.java LATCH_COUNTDOWN_SCRIPT` |
 | 7 | assertNull(hasKey) | 测试代码 Bug | hasKey 返回 Boolean 非 null | `*RealTest.java 14处` |
+| 8 | concurrencyLockAndTryLock 偶发失败 | 测试代码 Bug | CountDownLatch 信号点在锁获取之前 | `RedisUtilRealTest.java:319` |
 
 ---
 

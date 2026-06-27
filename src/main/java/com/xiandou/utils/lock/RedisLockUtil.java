@@ -17,7 +17,7 @@ public class RedisLockUtil {
 
     public static void init(DistributedLock lock) {
         distributedLock = lock;
-        logger.info("RedisUtil 初始化完成，DistributedLock={}", lock);
+        logger.info("RedisUtil 初始化完成");
     }
 
     // ==================== executeTryLock 系列 ====================
