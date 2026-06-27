@@ -25,6 +25,6 @@ public class RedisUtilInitializer {
     @PostConstruct
     public void init() {
         RedisLockUtil.init(distributedLock);
-        logger.info("RedisUtilInitializer: RedisUtil 已初始化");
+        logger.info("RedisLockUtil 已初始化，distributedLock={}", distributedLock);
     }
 }

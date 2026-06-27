@@ -1,8 +1,6 @@
 package com.xiandou.utils.lock;
 
 import com.xiandou.redis.core.DistributedLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -12,12 +10,21 @@ import java.util.function.Supplier;
  * 保持与原始 API 完全兼容。
  */
 public class RedisLockUtil {
-    private static final Logger logger = LoggerFactory.getLogger(RedisLockUtil.class);
-    private static DistributedLock distributedLock;
+    private static volatile DistributedLock distributedLock;
 
     public static void init(DistributedLock lock) {
+        if (lock == null) {
+            throw new IllegalArgumentException("DistributedLock must not be null");
+        }
         distributedLock = lock;
-        logger.info("RedisUtil 初始化完成");
+    }
+
+    private static DistributedLock getDistributedLock() {
+        DistributedLock lock = distributedLock;
+        if (lock == null) {
+            throw new IllegalStateException("RedisLockUtil 未初始化，请确保 RedisUtilInitializer 已正确注入");
+        }
+        return lock;
     }
 
     // ==================== executeTryLock 系列 ====================
@@ -51,7 +58,7 @@ public class RedisLockUtil {
         long leaseMs = expireTime >= 0 ? timeUnit.toMillis(expireTime) : -1;
         long waitMs = timeUnit.toMillis(waitTime);
 
-        boolean locked = distributedLock.tryLock(keyName, waitMs, leaseMs, TimeUnit.MILLISECONDS);
+        boolean locked = getDistributedLock().tryLock(keyName, waitMs, leaseMs, TimeUnit.MILLISECONDS);
         if (!locked) {
             return RedisLockResult.fail();
         }
@@ -64,7 +71,7 @@ public class RedisLockUtil {
             }
             ((VoidSupplier) supplier).get();
         } finally {
-            distributedLock.unlock(keyName);
+            getDistributedLock().unlock(keyName);
         }
         return RedisLockResult.success(null);
     }
@@ -86,7 +93,8 @@ public class RedisLockUtil {
     private static <V> V doExecuteLock(String keyName, long leaseTime, TimeUnit timeUnit, Object supplier) {
         // -1的时候才能启动看门狗
         long leaseMs = leaseTime >= 0 ? timeUnit.toMillis(leaseTime) : -1;
-        distributedLock.lock(keyName, leaseMs, TimeUnit.MILLISECONDS);
+        DistributedLock lock = getDistributedLock();
+        lock.lock(keyName, leaseMs, TimeUnit.MILLISECONDS);
 
         try {
             if (supplier instanceof Supplier) {
@@ -96,7 +104,7 @@ public class RedisLockUtil {
             }
             ((VoidSupplier) supplier).get();
         } finally {
-            distributedLock.unlock(keyName);
+            lock.unlock(keyName);
         }
         return null;
     }
