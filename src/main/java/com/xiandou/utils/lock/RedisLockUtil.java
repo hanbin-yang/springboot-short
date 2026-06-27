@@ -47,7 +47,8 @@ public class RedisLockUtil {
     }
 
     private static <V> RedisLockResult<V> doExecuteTryLock(String keyName, long waitTime, long expireTime, TimeUnit timeUnit, Object supplier) {
-        long leaseMs = expireTime > 0 ? timeUnit.toMillis(expireTime) : DistributedLock.DEFAULT_LEASE_TIME_MS;
+        // -1的时候才能启动看门狗
+        long leaseMs = expireTime >= 0 ? timeUnit.toMillis(expireTime) : -1;
         long waitMs = timeUnit.toMillis(waitTime);
 
         boolean locked = distributedLock.tryLock(keyName, waitMs, leaseMs, TimeUnit.MILLISECONDS);
@@ -83,7 +84,8 @@ public class RedisLockUtil {
     }
 
     private static <V> V doExecuteLock(String keyName, long leaseTime, TimeUnit timeUnit, Object supplier) {
-        long leaseMs = timeUnit.toMillis(leaseTime);
+        // -1的时候才能启动看门狗
+        long leaseMs = leaseTime >= 0 ? timeUnit.toMillis(leaseTime) : -1;
         distributedLock.lock(keyName, leaseMs, TimeUnit.MILLISECONDS);
 
         try {
