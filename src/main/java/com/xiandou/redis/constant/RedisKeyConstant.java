@@ -6,10 +6,10 @@ public class RedisKeyConstant {
     public static final String CHANNEL_LOCK_PREFIX = "redistemplate_lock__channel:{lock}:";
 
     public static final String PREFIX_SEMAPHORE = "{semaphore}:";
-    public static final String CHANNEL_SEMAPHORE_PREFIX = "redisson_sc:{semaphore}:";
+    public static final String CHANNEL_SEMAPHORE_PREFIX = "redistemplate_sc:{semaphore}:";
 
     public static final String PREFIX_LATCH = "{latch}:";
-    public static final String CHANNEL_LATCH_PREFIX = "redisson_countdownlatch:{latch}:";
+    public static final String CHANNEL_LATCH_PREFIX = "redistemplate_countdownlatch:{latch}:";
 
     public static final String PREFIX_RWLOCK = "{rwlock}:";
 
