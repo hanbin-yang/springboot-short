@@ -18,6 +18,10 @@ public class LuaScriptRegistry {
     public static final RedisScript<Long> SET_IF_ABSENT_SCRIPT;  // 通用"不存在则设置"脚本
     public static final RedisScript<Long> LATCH_COUNTDOWN_SCRIPT;
 
+    // ==================== 秒杀 ====================
+    /** 秒杀库存扣减 KEYS[1]=stock:key, ARGV[1]=扣减数量 */
+    public static final RedisScript<Long> SECKILL_DEDUCT_SCRIPT;
+
     static {
         LOCK_SCRIPT = createScript(
             "if (redis.call('exists', KEYS[1]) == 0) then " +
@@ -113,6 +117,20 @@ public class LuaScriptRegistry {
             "end; " +
             "redis.call('publish', KEYS[2], 0); " +
             "return nil;",
+            Long.class
+        );
+
+        /**
+         * 秒杀库存扣减 KEYS[1]=stock:key, ARGV[1]=扣减数量
+         * 尝试扣减，如果结果非负则返回剩余库存，否则回滚并返回 -1
+         */
+        SECKILL_DEDUCT_SCRIPT = createScript(
+            "local stock = redis.call('decrby', KEYS[1], tonumber(ARGV[1])); " +
+            "if stock >= 0 then " +
+                "return stock; " +
+            "end; " +
+            "redis.call('incrby', KEYS[1], tonumber(ARGV[1])); " +
+            "return -1;",
             Long.class
         );
     }
