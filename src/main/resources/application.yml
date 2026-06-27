@@ -6,8 +6,14 @@ spring:
     default-property-inclusion: non_null
   data:
     redis:
-      host: localhost
-      port: 6379
+      cluster:
+        # 部署后根据 Job 日志输出的实际 IP:Port 填写
+        # redis-0 在 worker 节点(187)，redis-1/redis-2 在 master 节点(186)
+        nodes:
+          - 192.168.56.187:6379
+          - 192.168.56.186:6380
+          - 192.168.56.186:6381
+        max-redirects: 3
       timeout: 3000ms
       lettuce:
         pool:

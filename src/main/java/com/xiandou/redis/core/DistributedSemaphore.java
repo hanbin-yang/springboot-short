@@ -13,15 +13,26 @@ import java.util.concurrent.TimeUnit;
  * <p>核心 API 允许获取和释放指定数量的许可，使用 Lua 脚本保证原子性。
  * 使用 trySetPermits 进行初始化（仅当 key 不存在时设置），避免重复覆盖。</p>
  *
- * <p>本类不依赖任何 utils 包下的类，保持独立。</p>
+ * <p>Redis Key 默认 7 天过期，可通过构造器 {@link #DistributedSemaphore(StringRedisTemplate, long)} 调整。</p>
  */
 public class DistributedSemaphore {
 
+    /** 默认过期时间：7 天 */
+    public static final long DEFAULT_TTL_SECONDS = 604800L;
+
     private final StringRedisTemplate redisTemplate;
+    private final long defaultTtlSeconds;
 
     public DistributedSemaphore(StringRedisTemplate redisTemplate) {
-        this.redisTemplate = redisTemplate;
+        this(redisTemplate, DEFAULT_TTL_SECONDS);
     }
+
+    public DistributedSemaphore(StringRedisTemplate redisTemplate, long defaultTtlSeconds) {
+        this.redisTemplate = redisTemplate;
+        this.defaultTtlSeconds = defaultTtlSeconds > 0 ? defaultTtlSeconds : DEFAULT_TTL_SECONDS;
+    }
+
+    // ==================== 获取许可 ====================
 
     /**
      * 尝试获取指定数量的许可，立即返回。
@@ -37,7 +48,7 @@ public class DistributedSemaphore {
         Long result = redisTemplate.execute(
                 LuaScriptRegistry.SEMAPHORE_ACQUIRE_SCRIPT,
                 List.of(RedisKeyConstant.semaphoreKey(name)),
-                String.valueOf(permits)
+                String.valueOf(permits), String.valueOf(defaultTtlSeconds)
         );
         return result != null && result == 1L;
     }
@@ -59,7 +70,6 @@ public class DistributedSemaphore {
             return true;
         }
         long deadline = System.currentTimeMillis() + unit.toMillis(timeout);
-        // 先尝试一次，避免不必要的等待
         if (tryAcquire(name, permits)) {
             return true;
         }
@@ -76,11 +86,6 @@ public class DistributedSemaphore {
 
     /**
      * 阻塞直到获取指定数量的许可。
-     * <p>通过轮询方式持续尝试，适用于能保证最终可获取的场景。</p>
-     *
-     * @param name    信号量名称
-     * @param permits 需要的许可数量
-     * @throws InterruptedException 等待时被中断
      */
     public void acquire(String name, int permits) throws InterruptedException {
         if (permits <= 0) {
@@ -91,11 +96,10 @@ public class DistributedSemaphore {
         }
     }
 
+    // ==================== 释放许可 ====================
+
     /**
-     * 释放指定数量的许可。
-     *
-     * @param name    信号量名称
-     * @param permits 要释放的许可数量
+     * 释放指定数量的许可。如果 Key 不存在则创建并设置过期时间。
      */
     public void release(String name, int permits) {
         if (permits <= 0) {
@@ -103,19 +107,15 @@ public class DistributedSemaphore {
         }
         redisTemplate.execute(
                 LuaScriptRegistry.SEMAPHORE_RELEASE_SCRIPT,
-                List.of(RedisKeyConstant.semaphoreKey(name)),
-                RedisKeyConstant.semaphoreChannel(name),
-                String.valueOf(permits)
+                List.of(RedisKeyConstant.semaphoreKey(name), RedisKeyConstant.semaphoreChannel(name)),
+                String.valueOf(permits), String.valueOf(defaultTtlSeconds)
         );
     }
 
+    // ==================== 初始化 ====================
+
     /**
-     * 初始化信号量许可数（仅当 key 不存在时设置）。
-     *
-     * @param name    信号量名称
-     * @param permits 许可数量
-     * @return true 设置成功（新创建），false key 已存在
-     * @throws IllegalArgumentException 当 permits 为负数时
+     * 初始化信号量许可数（仅当 key 不存在时设置），并设置过期时间。
      */
     public boolean trySetPermits(String name, int permits) {
         if (permits < 0) {
@@ -124,16 +124,15 @@ public class DistributedSemaphore {
         Long result = redisTemplate.execute(
                 LuaScriptRegistry.SET_IF_ABSENT_SCRIPT,
                 List.of(RedisKeyConstant.semaphoreKey(name)),
-                String.valueOf(permits)
+                String.valueOf(permits), String.valueOf(defaultTtlSeconds)
         );
         return result != null && result == 1L;
     }
 
+    // ==================== 查询 ====================
+
     /**
-     * 获取当前可用许可数。
-     *
-     * @param name 信号量名称
-     * @return 可用许可数，如果不存在则返回 0
+     * 获取当前可用许可数。如果 Key 不存在（已过期），返回 0。
      */
     public long availablePermits(String name) {
         String val = redisTemplate.opsForValue().get(RedisKeyConstant.semaphoreKey(name));

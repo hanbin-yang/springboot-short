@@ -59,38 +59,60 @@ public class LuaScriptRegistry {
             Long.class
         );
 
+        /**
+         * 信号量获取 ARGV[1]=permits, ARGV[2]=ttlSeconds
+         */
         SEMAPHORE_ACQUIRE_SCRIPT = createScript(
             "local value = redis.call('get', KEYS[1]); " +
             "if (value ~= false and tonumber(value) >= tonumber(ARGV[1])) then " +
                 "redis.call('decrby', KEYS[1], ARGV[1]); " +
+                "redis.call('expire', KEYS[1], ARGV[2]); " +
                 "return 1; " +
             "end; " +
             "return 0;",
             Long.class
         );
 
+        /**
+         * 信号量释放 ARGV[1]=permits, ARGV[2]=ttlSeconds
+         */
         SEMAPHORE_RELEASE_SCRIPT = createScript(
             "local val = redis.call('incrby', KEYS[1], ARGV[1]); " +
+            "redis.call('expire', KEYS[1], ARGV[2]); " +
             "redis.call('publish', KEYS[2], 'release'); " +
             "return val;",
             Long.class
         );
 
+        /**
+         * 不存在则设置 ARGV[1]=value, ARGV[2]=ttlSeconds
+         */
         SET_IF_ABSENT_SCRIPT = createScript(
             "if redis.call('exists', KEYS[1]) == 0 then " +
                 "redis.call('set', KEYS[1], ARGV[1]); " +
+                "redis.call('expire', KEYS[1], ARGV[2]); " +
                 "return 1; " +
             "end; " +
             "return 0;",
             Long.class
         );
 
+        /**
+         * CountDownLatch 递减 ARGV[1]=ttlSeconds
+         * 先检查 Key 是否存在（可能已过期），不存在则通知等待线程解除阻塞。
+         * 不直接 DECR 避免创建 -1 导致 await 误判。
+         */
         LATCH_COUNTDOWN_SCRIPT = createScript(
-            "local val = redis.call('decr', KEYS[1]); " +
-            "if val <= 0 then " +
-                "redis.call('publish', KEYS[2], 0); " +
+            "if redis.call('exists', KEYS[1]) == 1 then " +
+                "local val = redis.call('decr', KEYS[1]); " +
+                "redis.call('expire', KEYS[1], ARGV[1]); " +
+                "if val <= 0 then " +
+                    "redis.call('publish', KEYS[2], 0); " +
+                "end; " +
+                "return val; " +
             "end; " +
-            "return val;",
+            "redis.call('publish', KEYS[2], 0); " +
+            "return nil;",
             Long.class
         );
     }
