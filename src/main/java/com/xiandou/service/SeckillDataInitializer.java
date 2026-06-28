@@ -4,6 +4,7 @@ import com.xiandou.mapper.SeckillActivityMapper;
 import com.xiandou.model.SeckillActivity;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -16,12 +17,16 @@ import java.util.List;
 @EnableScheduling
 public class SeckillDataInitializer implements ApplicationRunner {
 
+    private static final String STOCK_PREFIX = "seckill:stock:";
+
     private final SeckillActivityMapper activityMapper;
     private final SeckillStockService stockService;
+    private final StringRedisTemplate redisTemplate;
 
-    public SeckillDataInitializer(SeckillActivityMapper activityMapper, SeckillStockService stockService) {
+    public SeckillDataInitializer(SeckillActivityMapper activityMapper, SeckillStockService stockService, StringRedisTemplate redisTemplate) {
         this.activityMapper = activityMapper;
         this.stockService = stockService;
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
@@ -53,8 +58,10 @@ public class SeckillDataInitializer implements ApplicationRunner {
         for (SeckillActivity a : all) {
             if (a.getStatus() == 1 && a.getStartTime() != null && a.getEndTime() != null
                     && now.isAfter(a.getStartTime()) && now.isBefore(a.getEndTime())) {
-                // 检查 Redis 是否已有库存
-                if (stockService.getStock(a.getId()) <= 0) {
+                // 检查 Redis 中库存 key 是否存在，仅当不存在时才预热
+                String stockKey = STOCK_PREFIX + a.getId();
+                Boolean keyExists = redisTemplate.hasKey(stockKey);
+                if (keyExists == null || !keyExists) {
                     stockService.warmUpStock(a.getId(), a.getRemainStock(), a.getEndTime());
                 }
             }

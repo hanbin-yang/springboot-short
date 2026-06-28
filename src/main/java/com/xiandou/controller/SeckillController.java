@@ -33,10 +33,8 @@ public class SeckillController {
     }
 
     @PostMapping("/{activityId}")
-    public Result<SeckillOrder> flashSale(@PathVariable Long activityId) {
-        // 从请求上下文获取 userId（简化：从 Header 取，默认 1L）
-        // 实际项目从 token 中解析
-        Long userId = 1L;
+    public Result<SeckillOrder> flashSale(@PathVariable Long activityId,
+                                          @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId) {
         return seckillService.flashSale(userId, activityId);
     }
 }

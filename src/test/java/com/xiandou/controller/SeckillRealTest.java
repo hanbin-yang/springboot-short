@@ -1,6 +1,5 @@
 package com.xiandou.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiandou.common.Result;
 import com.xiandou.mapper.SeckillActivityMapper;
 import com.xiandou.mapper.SeckillOrderMapper;
@@ -11,14 +10,11 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -37,9 +33,6 @@ class SeckillRealTest {
 
     @Autowired
     private SeckillStockService stockService;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     private Long testActivityId;
 
@@ -102,13 +95,7 @@ class SeckillRealTest {
     @DisplayName("秒杀-库存不足返回已售罄")
     void flashSaleStockOut() throws InterruptedException {
         // 快速消耗完库存
-        for (int i = 0; i < 10; i++) {
-            // 每次用不同 userId 模拟不同用户
-            java.util.Map<String, Long> headers = new java.util.HashMap<>();
-            // 这里简化: 直接 DECRBY 到 0
-            stockService.deductStock(testActivityId, 10);
-            break;
-        }
+        stockService.deductStock(testActivityId, 10);
         // 清理订单数据
         orderMapper.delete(null);
 
