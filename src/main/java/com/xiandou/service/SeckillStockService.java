@@ -12,7 +12,8 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class SeckillStockService {
 
-    private static final String STOCK_PREFIX = "seckill:stock:";
+    static final String STOCK_PREFIX = "seckill:stock:";
+    static final String USER_SET_PREFIX = "seckill:users:";
 
     private final StringRedisTemplate redisTemplate;
 
@@ -26,7 +27,10 @@ public class SeckillStockService {
         redisTemplate.opsForValue().set(key, String.valueOf(remainStock));
         // TTL = 活动结束时间 + 1 小时兜底
         long ttl = Duration.between(LocalDateTime.now(), endTime).getSeconds() + 3600;
-        redisTemplate.expire(key, Math.max(ttl, 3600), TimeUnit.SECONDS);
+        long ttlSec = Math.max(ttl, 3600);
+        redisTemplate.expire(key, ttlSec, TimeUnit.SECONDS);
+        // 同步设置用户去重 Set 的过期时间
+        redisTemplate.expire(USER_SET_PREFIX + activityId, ttlSec, TimeUnit.SECONDS);
     }
 
     /** Redis 原子扣减库存，返回值 >= 0 成功，-1 失败 */

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
@@ -34,6 +35,9 @@ class SeckillRealTest {
     @Autowired
     private SeckillStockService stockService;
 
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
     private Long testActivityId;
 
     @BeforeEach
@@ -41,6 +45,7 @@ class SeckillRealTest {
         // 清理测试数据
         orderMapper.delete(null);
         activityMapper.delete(null);
+        redisTemplate.delete(redisTemplate.keys("seckill:*"));
 
         // 插入测试活动（有效期 1 小时）
         LocalDateTime now = LocalDateTime.now();

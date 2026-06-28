@@ -1,6 +1,5 @@
 package com.xiandou.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xiandou.common.Result;
 import com.xiandou.mapper.SeckillActivityMapper;
 import com.xiandou.mapper.SeckillOrderMapper;
@@ -8,7 +7,9 @@ import com.xiandou.model.Product;
 import com.xiandou.model.SeckillActivity;
 import com.xiandou.model.SeckillOrder;
 import com.xiandou.model.Store;
-import com.xiandou.redis.core.DistributedLock;
+import static com.xiandou.service.SeckillStockService.STOCK_PREFIX;
+import static com.xiandou.service.SeckillStockService.USER_SET_PREFIX;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,7 +17,6 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,19 +26,19 @@ public class SeckillService {
     private final SeckillOrderMapper orderMapper;
     private final SeckillStockService stockService;
     private final MockDataService mockData;
-    private final DistributedLock distributedLock;
+    private final StringRedisTemplate redisTemplate;
 
     public SeckillService(SeckillActivityMapper activityMapper, SeckillOrderMapper orderMapper,
                            SeckillStockService stockService, MockDataService mockData,
-                           DistributedLock distributedLock) {
+                           StringRedisTemplate redisTemplate) {
         this.activityMapper = activityMapper;
         this.orderMapper = orderMapper;
         this.stockService = stockService;
         this.mockData = mockData;
-        this.distributedLock = distributedLock;
+        this.redisTemplate = redisTemplate;
     }
 
-    /** 秒杀活动列表（含商品信息） */
+    /** 秒杀活动列表 */
     public List<Map<String, Object>> getList() {
         List<SeckillActivity> activities = activityMapper.selectList(null);
         LocalDateTime now = LocalDateTime.now();
@@ -56,58 +56,44 @@ public class SeckillService {
         return toVO(activity);
     }
 
-    /** 执行秒杀 */
+    /** 执行秒杀（热路径：0 次 H2 读） */
     @Transactional
     public Result<SeckillOrder> flashSale(Long userId, Long activityId) {
-        // 1. 校验活动
-        SeckillActivity activity = activityMapper.selectById(activityId);
-        if (activity == null) {
-            return Result.fail("活动不存在");
-        }
-        LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(activity.getStartTime())) {
-            return Result.fail("活动尚未开始");
-        }
-        if (now.isAfter(activity.getEndTime())) {
-            return Result.fail("活动已结束");
+        // 1. 校验活动是否有效 — Redis 中库存 Key 存在即说明活动进行中
+        String stockKey = STOCK_PREFIX + activityId;
+        Boolean keyExists = redisTemplate.hasKey(stockKey);
+        if (keyExists == null || !keyExists) {
+            return Result.fail("活动不存在或尚未开始");
         }
 
-        // 2. 防重校验：同一用户对同一活动只能秒杀一次
-        String lockKey = "seckill:lock:" + userId + ":" + activityId;
-        boolean locked = distributedLock.tryLock(lockKey, 0, 3, TimeUnit.SECONDS);
-        if (!locked) {
-            return Result.fail("请勿重复提交");
+        // 2. 防重校验 — Redis Set 原子写入，不存在则加入
+        String userSetKey = USER_SET_PREFIX + activityId;
+        Long added = redisTemplate.opsForSet().add(userSetKey, String.valueOf(userId));
+        if (added == null || added == 0) {
+            return Result.fail("您已参与该活动");
         }
+
+        // 3. Redis 原子扣减库存
+        long stockResult = stockService.deductStock(activityId, 1);
+        if (stockResult < 0) {
+            // 扣减失败，回滚用户标记
+            redisTemplate.opsForSet().remove(userSetKey, String.valueOf(userId));
+            return Result.fail("已售罄");
+        }
+
+        // 4. H2 插入订单 + 更新库存（唯一落库操作）
         try {
-            long count = orderMapper.selectCount(
-                    new LambdaQueryWrapper<SeckillOrder>()
-                            .eq(SeckillOrder::getActivityId, activityId)
-                            .eq(SeckillOrder::getUserId, userId)
-            );
-            if (count > 0) {
-                return Result.fail("您已参与该活动");
-            }
-
-            // 3. Redis 原子扣减
-            long result = stockService.deductStock(activityId, 1);
-            if (result < 0) {
-                return Result.fail("已售罄");
-            }
-
-            // 4. H2 插入订单 + 更新库存
-            try {
-                SeckillOrder order = new SeckillOrder(activityId, activity.getProductId(), userId, activity.getSeckillPrice());
-                orderMapper.insert(order);
-                activity.setRemainStock(activity.getRemainStock() - 1);
-                activityMapper.updateById(activity);
-                return Result.success(order);
-            } catch (Exception e) {
-                // 回滚 Redis 库存
-                stockService.rollbackStock(activityId, 1);
-                return Result.fail("下单失败，请重试");
-            }
-        } finally {
-            distributedLock.unlock(lockKey);
+            SeckillActivity activity = activityMapper.selectById(activityId);
+            SeckillOrder order = new SeckillOrder(activityId, activity.getProductId(), userId, activity.getSeckillPrice());
+            orderMapper.insert(order);
+            activity.setRemainStock(activity.getRemainStock() - 1);
+            activityMapper.updateById(activity);
+            return Result.success(order);
+        } catch (Exception e) {
+            // 回滚 Redis 库存 + 用户标记
+            stockService.rollbackStock(activityId, 1);
+            redisTemplate.opsForSet().remove(userSetKey, String.valueOf(userId));
+            return Result.fail("下单失败，请重试");
         }
     }
 
@@ -118,7 +104,6 @@ public class SeckillService {
         vo.put("seckillPrice", activity.getSeckillPrice());
         vo.put("totalStock", activity.getTotalStock());
 
-        // 剩余库存优先从 Redis 获取，回退到 DB
         long redisStock = stockService.getStock(activity.getId());
         long remain = redisStock > 0 ? redisStock : activity.getRemainStock().longValue();
         vo.put("remainStock", Math.max(0, remain));
@@ -127,7 +112,6 @@ public class SeckillService {
         vo.put("endTime", activity.getEndTime());
         vo.put("status", activity.getStatus());
 
-        // 从 MockDataService 获取商品信息
         for (Store store : mockData.getStores()) {
             for (Product p : mockData.getProducts(store.getId().toString())) {
                 if (p.getId().equals(activity.getProductId())) {

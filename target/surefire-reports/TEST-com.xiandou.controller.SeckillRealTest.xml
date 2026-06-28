@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.xiandou.controller.SeckillRealTest" time="10.673" tests="7" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.xiandou.controller.SeckillRealTest" time="9.895" tests="7" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.cpu.isalist" value="amd64"/>
@@ -54,17 +54,17 @@
     <property name="localRepository" value="E:\yhb\softwares\maven-repository"/>
     <property name="java.vendor.url.bug" value="https://bugreport.java.com/bugreport/"/>
     <property name="java.io.tmpdir" value="C:\Users\1\AppData\Local\Temp\"/>
-    <property name="catalina.home" value="C:\Users\1\AppData\Local\Temp\tomcat.0.11721681538536819834"/>
+    <property name="catalina.home" value="C:\Users\1\AppData\Local\Temp\tomcat.0.10696124918077432207"/>
     <property name="com.zaxxer.hikari.pool_number" value="1"/>
     <property name="java.version" value="21.0.11"/>
     <property name="user.dir" value="E:\yhb\projects\aicodetest-web\springboot-short"/>
     <property name="os.arch" value="amd64"/>
     <property name="maven.multiModuleProjectDirectory" value="E:/yhb/projects/aicodetest-web/springboot-short"/>
     <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
-    <property name="PID" value="14852"/>
+    <property name="PID" value="3508"/>
     <property name="sun.os.patch.level" value=""/>
     <property name="CONSOLE_LOG_CHARSET" value="UTF-8"/>
-    <property name="catalina.base" value="C:\Users\1\AppData\Local\Temp\tomcat.0.11721681538536819834"/>
+    <property name="catalina.base" value="C:\Users\1\AppData\Local\Temp\tomcat.0.10696124918077432207"/>
     <property name="native.encoding" value="GBK"/>
     <property name="java.library.path" value="C:\Program Files\Java\jdk-21.0.11\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\Users\1\bin;D:\Program Files\Git\mingw64\bin;D:\Program Files\Git\usr\local\bin;D:\Program Files\Git\usr\bin;D:\Program Files\Git\usr\bin;D:\Program Files\Git\mingw64\bin;D:\Program Files\Git\usr\bin;C:\Users\1\bin;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\Common Files\Oracle\Java\java8path;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0;C:\WINDOWS\System32\OpenSSH;D:\HashiCorp\Vagrant\bin;D:\Program Files\Git\cmd;C:\Program Files\Java\jdk-21.0.11\bin;E:\yhb\softwares\apache-maven-3.9.16\bin;E:\yhb\softwares\mysql-8.0.19-winx64\bin;E:\yhb\softwares\scala-2.12.11\bin;D:\yhb\softwares\netcat;C:\Program Files\nodejs;C:\Users\1\AppData\Local\Programs\Python\Python37\Scripts;C:\Users\1\AppData\Local\Programs\Python\Python37;C:\Users\1\AppData\Local\Microsoft\WindowsApps;D:\Programs\Microsoft VS Code\bin;C:\Users\1\AppData\Roaming\npm;D:\Program Files\Git\usr\bin\vendor_perl;D:\Program Files\Git\usr\bin\core_perl;C:\Users\1\.claude\plugins\cache\claude-plugins-official\code-review\f42c6edab38a\bin;C:\Users\1\.claude\plugins\cache\claude-plugins-official\skill-creator\f42c6edab38a\bin;C:\Users\1\.claude\plugins\cache\superpowers-marketplace\superpowers\6.0.3\bin;."/>
     <property name="java.vm.info" value="mixed mode, sharing"/>
@@ -76,9 +76,9 @@
     <property name="library.jansi.path" value="E:/yhb/softwares/apache-maven-3.9.16/lib/jansi-native"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="concurrentFlashSaleNoOversell" classname="com.xiandou.controller.SeckillRealTest" time="0.933">
-    <system-out><![CDATA[16:32:30.612 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.xiandou.controller.SeckillRealTest]: SeckillRealTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-16:32:30.898 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.xiandou.XiandouApplication for test class com.xiandou.controller.SeckillRealTest
+  <testcase name="concurrentFlashSaleNoOversell" classname="com.xiandou.controller.SeckillRealTest" time="0.869">
+    <system-out><![CDATA[16:47:51.916 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.xiandou.controller.SeckillRealTest]: SeckillRealTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+16:47:52.082 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.xiandou.XiandouApplication for test class com.xiandou.controller.SeckillRealTest
 
   .   ____          _            __ _ _
  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
@@ -89,28 +89,28 @@
 
  :: Spring Boot ::                (v3.4.1)
 
-2026-06-28T16:32:31.821+08:00  INFO 14852 --- [           main] com.xiandou.controller.SeckillRealTest   : Starting SeckillRealTest using Java 21.0.11 with PID 14852 (started by 1 in E:\yhb\projects\aicodetest-web\springboot-short)
-2026-06-28T16:32:31.825+08:00  INFO 14852 --- [           main] com.xiandou.controller.SeckillRealTest   : No active profile set, falling back to 1 default profile: "default"
-2026-06-28T16:32:33.705+08:00  INFO 14852 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
-2026-06-28T16:32:33.709+08:00  INFO 14852 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
-2026-06-28T16:32:33.748+08:00  INFO 14852 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 14 ms. Found 0 Redis repository interfaces.
-2026-06-28T16:32:34.862+08:00  INFO 14852 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 0 (http)
-2026-06-28T16:32:34.892+08:00  INFO 14852 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-06-28T16:32:34.893+08:00  INFO 14852 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.34]
-2026-06-28T16:32:34.928+08:00  INFO 14852 --- [           main] o.apache.catalina.loader.WebappLoader    : Unknown class loader [jdk.internal.loader.ClassLoaders$PlatformClassLoader@27c0b110] of class [class jdk.internal.loader.ClassLoaders$PlatformClassLoader]
-2026-06-28T16:32:34.971+08:00  INFO 14852 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2026-06-28T16:32:34.973+08:00  INFO 14852 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 3116 ms
-2026-06-28T16:32:35.357+08:00  INFO 14852 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-06-28T16:32:35.658+08:00  INFO 14852 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:seckill user=SA
-2026-06-28T16:32:35.660+08:00  INFO 14852 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-06-28T16:47:52.859+08:00  INFO 3508 --- [           main] com.xiandou.controller.SeckillRealTest   : Starting SeckillRealTest using Java 21.0.11 with PID 3508 (started by 1 in E:\yhb\projects\aicodetest-web\springboot-short)
+2026-06-28T16:47:52.864+08:00  INFO 3508 --- [           main] com.xiandou.controller.SeckillRealTest   : No active profile set, falling back to 1 default profile: "default"
+2026-06-28T16:47:54.707+08:00  INFO 3508 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-06-28T16:47:54.711+08:00  INFO 3508 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-06-28T16:47:54.764+08:00  INFO 3508 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 24 ms. Found 0 Redis repository interfaces.
+2026-06-28T16:47:55.705+08:00  INFO 3508 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 0 (http)
+2026-06-28T16:47:55.726+08:00  INFO 3508 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-06-28T16:47:55.728+08:00  INFO 3508 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.34]
+2026-06-28T16:47:55.753+08:00  INFO 3508 --- [           main] o.apache.catalina.loader.WebappLoader    : Unknown class loader [jdk.internal.loader.ClassLoaders$PlatformClassLoader@290f0429] of class [class jdk.internal.loader.ClassLoaders$PlatformClassLoader]
+2026-06-28T16:47:55.788+08:00  INFO 3508 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-06-28T16:47:55.789+08:00  INFO 3508 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2878 ms
+2026-06-28T16:47:56.105+08:00  INFO 3508 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-06-28T16:47:56.405+08:00  INFO 3508 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:seckill user=SA
+2026-06-28T16:47:56.408+08:00  INFO 3508 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
  _ _   |_  _ _|_. ___ _ |    _ 
 | | |\/|_)(_| | |_\  |_)||_|_\ 
      /               |         
                         3.5.9 
-2026-06-28T16:32:36.863+08:00  INFO 14852 --- [           main] c.x.redis.config.RedisUtilInitializer    : RedisLockUtil 已初始化，distributedLock=com.xiandou.redis.core.DistributedLock@71de8be0
-2026-06-28T16:32:37.895+08:00  INFO 14852 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
-2026-06-28T16:32:38.323+08:00  INFO 14852 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 64384 (http) with context path '/'
-2026-06-28T16:32:38.343+08:00  INFO 14852 --- [           main] com.xiandou.controller.SeckillRealTest   : Started SeckillRealTest in 7.18 seconds (process running for 18.322)
+2026-06-28T16:47:57.609+08:00  INFO 3508 --- [           main] c.x.redis.config.RedisUtilInitializer    : RedisLockUtil 已初始化，distributedLock=com.xiandou.redis.core.DistributedLock@1da6508f
+2026-06-28T16:47:58.624+08:00  INFO 3508 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-06-28T16:47:58.984+08:00  INFO 3508 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 64993 (http) with context path '/'
+2026-06-28T16:47:59.004+08:00  INFO 3508 --- [           main] com.xiandou.controller.SeckillRealTest   : Started SeckillRealTest in 6.697 seconds (process running for 15.907)
 ]]></system-out>
     <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build what is described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html#0.3
 WARNING: A Java agent has been loaded dynamically (E:\yhb\softwares\maven-repository\net\bytebuddy\byte-buddy-agent\1.15.11\byte-buddy-agent-1.15.11.jar)
@@ -119,15 +119,15 @@ WARNING: If a serviceability tool is not in use, please run with -Djdk.instrumen
 WARNING: Dynamic loading of agents will be disallowed by default in a future release
 ]]></system-err>
   </testcase>
-  <testcase name="detailReturnsActivityInfo" classname="com.xiandou.controller.SeckillRealTest" time="0.356">
-    <system-out><![CDATA[2026-06-28T16:32:40.624+08:00  INFO 14852 --- [o-auto-1-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-06-28T16:32:40.625+08:00  INFO 14852 --- [o-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-06-28T16:32:40.627+08:00  INFO 14852 --- [o-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+  <testcase name="detailReturnsActivityInfo" classname="com.xiandou.controller.SeckillRealTest" time="0.399">
+    <system-out><![CDATA[2026-06-28T16:48:01.232+08:00  INFO 3508 --- [o-auto-1-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-06-28T16:48:01.234+08:00  INFO 3508 --- [o-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-06-28T16:48:01.236+08:00  INFO 3508 --- [o-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
 ]]></system-out>
   </testcase>
-  <testcase name="flashSaleActivityNotFound" classname="com.xiandou.controller.SeckillRealTest" time="0.034"/>
-  <testcase name="flashSaleDuplicateReturnsFail" classname="com.xiandou.controller.SeckillRealTest" time="0.101"/>
-  <testcase name="flashSaleStockOut" classname="com.xiandou.controller.SeckillRealTest" time="0.028"/>
-  <testcase name="flashSaleSuccess" classname="com.xiandou.controller.SeckillRealTest" time="0.029"/>
-  <testcase name="listReturnsActiveActivities" classname="com.xiandou.controller.SeckillRealTest" time="0.022"/>
+  <testcase name="flashSaleActivityNotFound" classname="com.xiandou.controller.SeckillRealTest" time="0.041"/>
+  <testcase name="flashSaleDuplicateReturnsFail" classname="com.xiandou.controller.SeckillRealTest" time="0.068"/>
+  <testcase name="flashSaleStockOut" classname="com.xiandou.controller.SeckillRealTest" time="0.033"/>
+  <testcase name="flashSaleSuccess" classname="com.xiandou.controller.SeckillRealTest" time="0.035"/>
+  <testcase name="listReturnsActiveActivities" classname="com.xiandou.controller.SeckillRealTest" time="0.033"/>
 </testsuite>

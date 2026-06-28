@@ -12,12 +12,11 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import static com.xiandou.service.SeckillStockService.STOCK_PREFIX;
 
 @Component
 @EnableScheduling
 public class SeckillDataInitializer implements ApplicationRunner {
-
-    private static final String STOCK_PREFIX = "seckill:stock:";
 
     private final SeckillActivityMapper activityMapper;
     private final SeckillStockService stockService;
