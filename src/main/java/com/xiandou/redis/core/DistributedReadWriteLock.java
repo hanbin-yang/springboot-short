@@ -1,6 +1,7 @@
 package com.xiandou.redis.core;
 
 import com.xiandou.redis.constant.RedisKeyConstant;
+import com.xiandou.redis.listener.SharedPubSubSubscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -155,6 +156,7 @@ public class DistributedReadWriteLock {
                     "redis.call('hset', KEYS[1], 'mode', 'read'); " +
                     "redis.call('pexpire', KEYS[1], ARGV[1]); " +
                 "end; " +
+                "redis.call('publish', KEYS[2], '0'); " +
                 "return 1;",
                 Long.class
         );
@@ -175,6 +177,7 @@ public class DistributedReadWriteLock {
                 "else " +
                     "redis.call('pexpire', KEYS[1], ARGV[1]); " +
                 "end; " +
+                "redis.call('publish', KEYS[2], '0'); " +
                 "return 1;",
                 Long.class
         );
@@ -190,12 +193,18 @@ public class DistributedReadWriteLock {
     // ==================== 实例字段 ====================
 
     private final StringRedisTemplate redisTemplate;
+    private final SharedPubSubSubscriber pubSubSubscriber;
     private final String clientId = UUID.randomUUID().toString();
 
     // ==================== 构造方法 ====================
 
     public DistributedReadWriteLock(StringRedisTemplate redisTemplate) {
+        this(redisTemplate, new SharedPubSubSubscriber(redisTemplate.getConnectionFactory()));
+    }
+
+    public DistributedReadWriteLock(StringRedisTemplate redisTemplate, SharedPubSubSubscriber pubSubSubscriber) {
         this.redisTemplate = redisTemplate;
+        this.pubSubSubscriber = pubSubSubscriber;
     }
 
     // ==================== 写锁 API ====================
@@ -239,8 +248,8 @@ public class DistributedReadWriteLock {
             return false;
         }
 
-        // 轮询等待
-        return waitForWriteLock(lockKey, entryName, leaseMs, waitMs);
+        // 等待（Pub/Sub 通知）
+        return waitForWriteLock(name, lockKey, entryName, leaseMs, waitMs);
     }
 
     /**
@@ -256,7 +265,7 @@ public class DistributedReadWriteLock {
 
         Long result = redisTemplate.execute(
                 WRITE_UNLOCK_SCRIPT,
-                List.of(lockKey),
+                List.of(lockKey, RedisKeyConstant.rwlockChannel(name)),
                 String.valueOf(DEFAULT_LEASE_TIME_MS), entryName
         );
         if (result == null) {
@@ -309,7 +318,7 @@ public class DistributedReadWriteLock {
         }
 
         // 轮询等待
-        return waitForReadLock(lockKey, readEntryName, writeEntryName, leaseMs, waitMs);
+        return waitForReadLock(name, lockKey, readEntryName, writeEntryName, leaseMs, waitMs);
     }
 
     /**
@@ -325,7 +334,7 @@ public class DistributedReadWriteLock {
 
         Long result = redisTemplate.execute(
                 READ_UNLOCK_SCRIPT,
-                List.of(lockKey),
+                List.of(lockKey, RedisKeyConstant.rwlockChannel(name)),
                 String.valueOf(DEFAULT_LEASE_TIME_MS), entryName
         );
         if (result == null) {
@@ -371,42 +380,44 @@ public class DistributedReadWriteLock {
         }
     }
 
-    private boolean waitForWriteLock(String lockKey, String entryName, long leaseMs, long waitMs) {
+    private boolean waitForWriteLock(String name, String lockKey, String entryName, long leaseMs, long waitMs) {
         long deadline = System.currentTimeMillis() + waitMs;
+        String channel = RedisKeyConstant.rwlockChannel(name);
         while (System.currentTimeMillis() < deadline) {
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return false;
-            }
             Long ttl = evalWriteLock(lockKey, leaseMs, entryName);
             if (ttl == null) {
                 return true;
             }
-            if (System.currentTimeMillis() >= deadline) {
-                break;
+            long remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0) break;
+            long sleepMs = Math.min(ttl > 0 ? Math.min(ttl, remaining) : remaining, 1000);
+            try {
+                pubSubSubscriber.await(channel, sleepMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
             }
         }
         return false;
     }
 
-    private boolean waitForReadLock(String lockKey, String readEntryName, String writeEntryName,
+    private boolean waitForReadLock(String name, String lockKey, String readEntryName, String writeEntryName,
                                     long leaseMs, long waitMs) {
         long deadline = System.currentTimeMillis() + waitMs;
+        String channel = RedisKeyConstant.rwlockChannel(name);
         while (System.currentTimeMillis() < deadline) {
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return false;
-            }
             Long ttl = evalReadLock(lockKey, leaseMs, readEntryName, writeEntryName);
             if (ttl == null) {
                 return true;
             }
-            if (System.currentTimeMillis() >= deadline) {
-                break;
+            long remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0) break;
+            long sleepMs = Math.min(ttl > 0 ? Math.min(ttl, remaining) : remaining, 1000);
+            try {
+                pubSubSubscriber.await(channel, sleepMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
             }
         }
         return false;

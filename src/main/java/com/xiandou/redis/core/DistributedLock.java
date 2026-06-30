@@ -131,15 +131,6 @@ public class DistributedLock {
                 return;
             }
 
-            // 再次尝试
-            ttl = evalLock(lockKey, leaseMs, entryName);
-            if (ttl == null) {
-                if (leaseTime < 0) {
-                    scheduleRenewal(lockKey, entryName);
-                }
-                return;
-            }
-
             String channel = RedisKeyConstant.lockChannel(name);
             long waitMs = ttl > 0 ? ttl : DEFAULT_LEASE_TIME_MS;
             try {

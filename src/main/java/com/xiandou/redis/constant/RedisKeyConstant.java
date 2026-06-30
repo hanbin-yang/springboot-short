@@ -24,5 +24,6 @@ public class RedisKeyConstant {
     public static String semaphoreChannel(String name) { return CHANNEL_SEMAPHORE_PREFIX + name; }
     public static String latchKey(String name) { return PREFIX_LATCH + name; }
     public static String latchChannel(String name) { return CHANNEL_LATCH_PREFIX + name; }
+    public static String rwlockChannel(String name) { return NAME_PREFIX + "channel_rwlock:" + PREFIX_RWLOCK + name; }
     public static String rwlockKey(String name) { return PREFIX_RWLOCK + name; }
 }
