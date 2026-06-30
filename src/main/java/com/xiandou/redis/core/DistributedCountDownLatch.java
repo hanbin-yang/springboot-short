@@ -2,7 +2,7 @@ package com.xiandou.redis.core;
 
 import com.xiandou.redis.config.LuaScriptRegistry;
 import com.xiandou.redis.constant.RedisKeyConstant;
-import com.xiandou.redis.listener.PubSubSubscriber;
+import com.xiandou.redis.listener.SharedPubSubSubscriber;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.List;
@@ -23,6 +23,7 @@ public class DistributedCountDownLatch {
     public static final long DEFAULT_TTL_SECONDS = 604800L;
 
     private final StringRedisTemplate redisTemplate;
+    private final SharedPubSubSubscriber pubSubSubscriber;
     private final long defaultTtlSeconds;
 
     public DistributedCountDownLatch(StringRedisTemplate redisTemplate) {
@@ -30,8 +31,14 @@ public class DistributedCountDownLatch {
     }
 
     public DistributedCountDownLatch(StringRedisTemplate redisTemplate, long defaultTtlSeconds) {
+        this(redisTemplate, defaultTtlSeconds, new SharedPubSubSubscriber(redisTemplate.getConnectionFactory()));
+    }
+
+    public DistributedCountDownLatch(StringRedisTemplate redisTemplate, long defaultTtlSeconds,
+                                      SharedPubSubSubscriber pubSubSubscriber) {
         this.redisTemplate = redisTemplate;
         this.defaultTtlSeconds = defaultTtlSeconds > 0 ? defaultTtlSeconds : DEFAULT_TTL_SECONDS;
+        this.pubSubSubscriber = pubSubSubscriber;
     }
 
     // ==================== 初始化 ====================
@@ -77,13 +84,10 @@ public class DistributedCountDownLatch {
             return;
         }
         String channel = RedisKeyConstant.latchChannel(name);
-        try (PubSubSubscriber subscriber = new PubSubSubscriber(
-                redisTemplate.getConnectionFactory(), channel)) {
-            if (isCountZeroOrNotExists(name)) {
-                return;
-            }
-            subscriber.await(Long.MAX_VALUE);
+        if (isCountZeroOrNotExists(name)) {
+            return;
         }
+        pubSubSubscriber.await(channel, Long.MAX_VALUE);
     }
 
     /**
@@ -95,18 +99,15 @@ public class DistributedCountDownLatch {
         }
         long deadline = System.currentTimeMillis() + unit.toMillis(timeout);
         String channel = RedisKeyConstant.latchChannel(name);
-        try (PubSubSubscriber subscriber = new PubSubSubscriber(
-                redisTemplate.getConnectionFactory(), channel)) {
-            if (isCountZeroOrNotExists(name)) {
-                return true;
-            }
-            long remaining = deadline - System.currentTimeMillis();
-            if (remaining <= 0) {
-                return false;
-            }
-            subscriber.await(remaining);
-            return isCountZeroOrNotExists(name);
+        if (isCountZeroOrNotExists(name)) {
+            return true;
         }
+        long remaining = deadline - System.currentTimeMillis();
+        if (remaining <= 0) {
+            return false;
+        }
+        pubSubSubscriber.await(channel, remaining);
+        return isCountZeroOrNotExists(name);
     }
 
     // ==================== 查询 ====================

@@ -2,7 +2,7 @@ package com.xiandou.redis.core;
 
 import com.xiandou.redis.config.LuaScriptRegistry;
 import com.xiandou.redis.constant.RedisKeyConstant;
-import com.xiandou.redis.listener.PubSubSubscriber;
+import com.xiandou.redis.listener.SharedPubSubSubscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -31,6 +31,7 @@ public class DistributedLock {
     private static final long WATCHDOG_INTERVAL_MS = DEFAULT_LEASE_TIME_MS / 3;
 
     private final StringRedisTemplate redisTemplate;
+    private final SharedPubSubSubscriber pubSubSubscriber;
     private final String clientId = UUID.randomUUID().toString();
 
     /** Watchdog 定时任务条目：lockKey → RenewalEntry */
@@ -40,7 +41,12 @@ public class DistributedLock {
     private final ScheduledExecutorService watchdogExecutor;
 
     public DistributedLock(StringRedisTemplate redisTemplate) {
+        this(redisTemplate, new SharedPubSubSubscriber(redisTemplate.getConnectionFactory()));
+    }
+
+    public DistributedLock(StringRedisTemplate redisTemplate, SharedPubSubSubscriber pubSubSubscriber) {
         this.redisTemplate = redisTemplate;
+        this.pubSubSubscriber = pubSubSubscriber;
         this.watchdogExecutor = Executors.newScheduledThreadPool(
                 Math.max(4, Runtime.getRuntime().availableProcessors()),
                 r -> {
@@ -125,19 +131,19 @@ public class DistributedLock {
                 return;
             }
 
-            String channel = RedisKeyConstant.lockChannel(name);
-            try (PubSubSubscriber subscriber = new PubSubSubscriber(
-                    redisTemplate.getConnectionFactory(), channel)) {
-                // 再次尝试
-                ttl = evalLock(lockKey, leaseMs, entryName);
-                if (ttl == null) {
-                    if (leaseTime < 0) {
-                        scheduleRenewal(lockKey, entryName);
-                    }
-                    return;
+            // 再次尝试
+            ttl = evalLock(lockKey, leaseMs, entryName);
+            if (ttl == null) {
+                if (leaseTime < 0) {
+                    scheduleRenewal(lockKey, entryName);
                 }
-                long waitMs = ttl > 0 ? ttl : DEFAULT_LEASE_TIME_MS;
-                subscriber.await(waitMs);
+                return;
+            }
+
+            String channel = RedisKeyConstant.lockChannel(name);
+            long waitMs = ttl > 0 ? ttl : DEFAULT_LEASE_TIME_MS;
+            try {
+                pubSubSubscriber.await(channel, waitMs);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("Interrupted while waiting for lock: " + name, e);
@@ -195,25 +201,24 @@ public class DistributedLock {
         String channel = RedisKeyConstant.lockChannel(name);
         long deadline = System.currentTimeMillis() + waitMs;
 
-        try (PubSubSubscriber subscriber = new PubSubSubscriber(
-                redisTemplate.getConnectionFactory(), channel)) {
-
-            while (System.currentTimeMillis() < deadline) {
-                Long ttl = evalLock(lockKey, leaseMs, entryName);
-                if (ttl == null) {
-                    if (leaseTime < 0) {
-                        scheduleRenewal(lockKey, entryName);
-                    }
-                    return true;
+        while (System.currentTimeMillis() < deadline) {
+            Long ttl = evalLock(lockKey, leaseMs, entryName);
+            if (ttl == null) {
+                if (leaseTime < 0) {
+                    scheduleRenewal(lockKey, entryName);
                 }
-                long remaining = deadline - System.currentTimeMillis();
-                if (remaining <= 0) break;
-                long sleepMs = Math.min(ttl > 0 ? Math.min(ttl, remaining) : remaining, 1000);
-                subscriber.await(sleepMs);
+                return true;
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return false;
+
+            long remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0) break;
+            long sleepMs = Math.min(ttl > 0 ? Math.min(ttl, remaining) : remaining, 1000);
+            try {
+                pubSubSubscriber.await(channel, sleepMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
         }
         return false;
     }
