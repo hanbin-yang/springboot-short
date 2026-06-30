@@ -108,8 +108,8 @@ public class SeckillService {
         long remain = redisStock > 0 ? redisStock : activity.getRemainStock().longValue();
         vo.put("remainStock", Math.max(0, remain));
 
-        vo.put("startTime", activity.getStartTime());
-        vo.put("endTime", activity.getEndTime());
+        vo.put("startTime", activity.getStartTime().toString());
+        vo.put("endTime", activity.getEndTime().toString());
         vo.put("status", activity.getStatus());
 
         for (Store store : mockData.getStores()) {
