@@ -172,7 +172,8 @@ class DistributedCountDownLatchRealTest {
     @DisplayName("await-计数归零后返回")
     void awaitReturnsWhenZero() throws InterruptedException {
         String name = testPrefix("awaitOK");
-        latch.trySetCount(name, 1);
+        cleanup(name);
+        assertTrue(latch.trySetCount(name, 1), "初始化计数应成功");
         AtomicBoolean released = new AtomicBoolean(false);
         CountDownLatch ready = new CountDownLatch(1);
 
@@ -280,7 +281,8 @@ class DistributedCountDownLatchRealTest {
     void countDownNotifiesMultipleWaiters() throws InterruptedException {
         String name = testPrefix("multiNotify");
         int waiterCount = 5;
-        latch.trySetCount(name, 1);
+        cleanup(name);
+        assertTrue(latch.trySetCount(name, 1), "初始化计数应成功");
 
         CountDownLatch ready = new CountDownLatch(waiterCount);
         AtomicInteger released = new AtomicInteger(0);
@@ -336,7 +338,8 @@ class DistributedCountDownLatchRealTest {
     @DisplayName("countDown-逐步递减多个线程等待不同阶段")
     void countDownStepByStep() throws InterruptedException {
         String name = testPrefix("stepByStep");
-        latch.trySetCount(name, 3);
+        cleanup(name);
+        assertTrue(latch.trySetCount(name, 3), "初始化计数应成功");
         AtomicInteger stage = new AtomicInteger(0);
         CountDownLatch ready = new CountDownLatch(3);
 

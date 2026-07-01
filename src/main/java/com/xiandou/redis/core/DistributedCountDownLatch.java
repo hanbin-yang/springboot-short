@@ -84,14 +84,16 @@ public class DistributedCountDownLatch {
             return;
         }
         String channel = RedisKeyConstant.latchChannel(name);
-        if (isCountZeroOrNotExists(name)) {
-            return;
+        // 轮询+Pub/Sub 通知：等待时最长 1 秒超时，过后重新检查计数
+        // Pub/Sub 通知可提前唤醒，通知丢失也不影响正确性
+        while (!isCountZeroOrNotExists(name)) {
+            pubSubSubscriber.await(channel, 1000);
         }
-        pubSubSubscriber.await(channel, Long.MAX_VALUE);
     }
 
     /**
      * 带超时的阻塞等待。
+     * <p>采用轮询 + Pub/Sub（最多 1 秒间隔），即使 Pub/Sub 通知丢失也能快速恢复。</p>
      */
     public boolean await(String name, long timeout, TimeUnit unit) throws InterruptedException {
         if (isCountZeroOrNotExists(name)) {
@@ -99,14 +101,17 @@ public class DistributedCountDownLatch {
         }
         long deadline = System.currentTimeMillis() + unit.toMillis(timeout);
         String channel = RedisKeyConstant.latchChannel(name);
-        if (isCountZeroOrNotExists(name)) {
-            return true;
+        while (System.currentTimeMillis() < deadline) {
+            if (isCountZeroOrNotExists(name)) {
+                return true;
+            }
+            long remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0) {
+                return false;
+            }
+            // 每段最多等 1 秒，超时后重新检查计数
+            pubSubSubscriber.await(channel, Math.min(remaining, 1000));
         }
-        long remaining = deadline - System.currentTimeMillis();
-        if (remaining <= 0) {
-            return false;
-        }
-        pubSubSubscriber.await(channel, remaining);
         return isCountZeroOrNotExists(name);
     }
 
